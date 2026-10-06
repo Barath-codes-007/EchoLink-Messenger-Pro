@@ -1,0 +1,579 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>EchoLink Messenger</title>
+<script>(function(){ var t = localStorage.getItem("echolink:theme") || "dark"; document.documentElement.setAttribute("data-theme", t); })();</script>
+<link rel="stylesheet" href="/css/tokens.css" />
+<link rel="stylesheet" href="/css/app.css" />
+<link rel="stylesheet" href="/css/calls.css" />
+<script src="/socket.io/socket.io.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/github-dark.min.css" />
+<script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+</head>
+<body>
+
+<div class="app-shell" id="app-shell">
+
+  <!-- ================= Sidebar ================= -->
+  <aside class="sidebar" id="sidebar">
+    <div class="sidebar-header">
+      <div class="brand"><span class="brand-mark" style="width:32px;height:32px;border-radius:9px;background:var(--accent-grad);display:flex;align-items:center;justify-content:center;color:#06141B;font-weight:700;font-family:var(--font-display);">E</span><span style="font-family:var(--font-display);font-weight:700;">EchoLink</span></div>
+      <button class="btn-icon" id="theme-toggle" title="Toggle theme" aria-label="Toggle theme">
+        <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></svg>
+      </button>
+    </div>
+
+    <div class="sidebar-search">
+      <input class="input" id="room-search" placeholder="Search rooms…" />
+    </div>
+
+    <div class="room-list" id="room-list">
+      <!-- room items injected here; skeletons shown while loading -->
+      <div class="skeleton" style="height:56px;margin-bottom:6px;"></div>
+      <div class="skeleton" style="height:56px;margin-bottom:6px;"></div>
+      <div class="skeleton" style="height:56px;"></div>
+    </div>
+
+    <div class="sidebar-actions">
+      <button class="btn btn-secondary" id="btn-create-room">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 5v14M5 12h14"/></svg>
+        Create
+      </button>
+      <button class="btn btn-secondary" id="btn-join-room">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4M10 17l5-5-5-5M15 12H3"/></svg>
+        Join
+      </button>
+    </div>
+
+    <div class="user-card">
+      <div class="avatar-wrap" id="my-avatar-wrap">
+        <img class="avatar" id="my-avatar" alt="" />
+        <span class="status-dot status-online" id="my-status-dot"></span>
+      </div>
+      <div style="min-width:0;">
+        <div class="user-card-name" id="my-username">—</div>
+        <div class="user-card-status" id="my-status-label">online</div>
+      </div>
+      <div class="user-card-actions">
+        <button class="btn-icon" id="btn-settings" title="Settings" aria-label="Settings" style="width:32px;height:32px;">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1Z"/></svg>
+        </button>
+      </div>
+    </div>
+  </aside>
+
+  <!-- ================= Chat main ================= -->
+  <main class="chat-main hidden-mobile" id="chat-main">
+    <div id="empty-state" class="empty-state">
+      <div class="echo-rings"><div class="brand-mark" style="width:64px;height:64px;border-radius:18px;background:var(--accent-grad);display:flex;align-items:center;justify-content:center;color:#06141B;font-size:26px;font-weight:700;font-family:var(--font-display);">E</div></div>
+      <h3>Pick a room, or create one</h3>
+      <p>Temporary rooms disappear when everyone leaves. Permanent rooms keep every message, forever.</p>
+    </div>
+
+    <div id="room-view" class="hidden" style="display:contents;">
+      <div class="chat-header">
+        <button class="btn-icon mobile-back" id="btn-mobile-back" aria-label="Back"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m15 18-6-6 6-6"/></svg></button>
+        <div class="room-icon" id="header-room-icon" style="width:38px;height:38px;font-size:14px;">R</div>
+        <div class="chat-header-info">
+          <h2 id="header-room-name">Room</h2>
+          <div class="chat-header-sub" id="header-room-sub">—</div>
+        </div>
+        <div class="chat-header-actions">
+          <button class="btn-icon" id="btn-search-messages" title="Search messages" aria-label="Search messages"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg></button>
+          <button class="btn-icon" id="btn-call-voice" title="Voice call" aria-label="Voice call"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6A19.79 19.79 0 0 1 2.12 4.18 2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92Z"/></svg></button>
+          <button class="btn-icon" id="btn-call-video" title="Video call" aria-label="Video call"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m23 7-7 5 7 5V7Z"/><rect x="1" y="5" width="15" height="14" rx="2"/></svg></button>
+          <button class="btn-icon" id="btn-toggle-members" title="Members" aria-label="Members"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"/></svg></button>
+          <button class="btn-icon" id="btn-room-settings" title="Room settings" aria-label="Room settings"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="1"/><circle cx="19" cy="12" r="1"/><circle cx="5" cy="12" r="1"/></svg></button>
+        </div>
+      </div>
+
+      <div class="hidden" id="search-bar" style="display:none; align-items:center; gap:10px; padding:10px 22px; border-bottom:1px solid var(--border); background:var(--surface);">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="flex-shrink:0; color:var(--text-muted);"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>
+        <input class="input" id="search-input" placeholder="Search in this room…" style="border:none; background:none; padding:4px 0;" />
+        <button class="btn-icon" id="btn-close-search" style="width:28px;height:28px;">&times;</button>
+      </div>
+      <div class="hidden" id="search-results" style="max-height:260px; overflow-y:auto; border-bottom:1px solid var(--border);"></div>
+
+      <div class="pinned-banner hidden" id="pinned-banner"></div>
+
+      <div class="chat-body" id="chat-body">
+        <div id="load-more-sentinel" style="text-align:center; padding:8px;"></div>
+        <div id="messages-list"></div>
+      </div>
+
+      <div class="typing-indicator" id="typing-indicator"></div>
+
+      <div class="composer-reply-preview" id="reply-preview">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 17 4 12 9 7"/><path d="M20 18v-2a4 4 0 0 0-4-4H4"/></svg>
+        <div style="flex:1; min-width:0;">Replying to <b id="reply-preview-name"></b><div id="reply-preview-text" style="color:var(--text-muted); overflow:hidden; text-overflow:ellipsis; white-space:nowrap;"></div></div>
+        <button class="btn-icon" id="btn-cancel-reply" style="width:26px;height:26px;">&times;</button>
+      </div>
+
+      <div id="upload-progress-slot"></div>
+
+      <form class="composer" id="composer-form">
+        <div class="composer-tools">
+          <button type="button" class="btn-icon" id="btn-attach-file" title="Attach file" aria-label="Attach file"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m21.44 11.05-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48"/></svg></button>
+          <button type="button" class="btn-icon" id="btn-camera" title="Camera" aria-label="Camera"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2Z"/><circle cx="12" cy="13" r="4"/></svg></button>
+          <button type="button" class="btn-icon" id="btn-emoji" title="Emoji, GIFs & stickers" aria-label="Emoji, GIFs and stickers"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M8 14s1.5 2 4 2 4-2 4-2M9 9h.01M15 9h.01"/></svg></button>
+          <button type="button" class="btn-icon" id="btn-more-tools" title="More (poll, schedule, location)" aria-label="More composer tools"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="1"/><circle cx="19" cy="12" r="1"/><circle cx="5" cy="12" r="1"/></svg></button>
+        </div>
+        <div id="picker-popover-slot"></div>
+        <div class="composer-input-wrap">
+          <textarea class="composer-input" id="composer-input" placeholder="Message…" rows="1"></textarea>
+        </div>
+        <div class="recording-bar" id="recording-bar">
+          <span class="recording-dot"></span>
+          <div class="recording-wave" id="recording-wave"></div>
+          <span class="recording-time" id="recording-time">0:00</span>
+          <button type="button" class="btn-icon" id="btn-pause-recording" style="width:30px;height:30px;" title="Pause">⏸</button>
+          <button type="button" class="btn-icon" id="btn-cancel-recording" style="width:30px;height:30px;" title="Cancel">&times;</button>
+          <button type="button" class="btn-icon" id="btn-send-recording" style="width:30px;height:30px;background:var(--accent-grad);color:#06141B;" title="Send voice note">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="m3 3 18 9-18 9v-7l12-2-12-2V3Z"/></svg>
+          </button>
+        </div>
+        <button type="button" class="btn-icon" id="btn-voice-note" title="Hold to record" aria-label="Record voice note"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3Z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2M12 19v3"/></svg></button>
+        <button type="submit" class="send-btn" id="btn-send" disabled title="Send" aria-label="Send message"><svg width="17" height="17" viewBox="0 0 24 24" fill="currentColor"><path d="m3 3 18 9-18 9v-7l12-2-12-2V3Z"/></svg></button>
+      </form>
+      <div id="mention-autocomplete-slot"></div>
+    </div>
+  </main>
+
+  <div id="thread-panel-slot"></div>
+
+  <!-- ================= Details panel ================= -->
+  <aside class="details-panel hidden" id="details-panel">
+    <div class="details-tabs">
+      <div class="details-tab active" data-tab="members">Members</div>
+      <div class="details-tab" data-tab="media">Media</div>
+    </div>
+    <div class="details-body" id="details-body"></div>
+  </aside>
+
+</div>
+
+<!-- ================= Modals ================= -->
+<div id="modal-root"></div>
+<div id="context-menu-root"></div>
+<div id="toast-stack"></div>
+<div id="call-root"></div>
+
+<!-- ---- templates ---- -->
+<template id="tpl-create-room">
+  <div class="modal glass">
+    <h3>Create a room</h3>
+    <p class="modal-sub">Temporary rooms vanish when everyone leaves. Permanent rooms keep their history forever.</p>
+    <form id="create-room-form" style="display:flex; flex-direction:column; gap:14px;">
+      <div class="field"><label>Room name</label><input class="input" id="cr-name" maxlength="60" required placeholder="e.g. Design Sync" /></div>
+      <div class="field"><label>Description (optional)</label><input class="input" id="cr-desc" maxlength="200" placeholder="What's this room for?" /></div>
+      <div class="field">
+        <label>Room type</label>
+        <div style="display:flex; gap:8px;">
+          <label style="flex:1; display:flex; align-items:center; gap:8px; padding:10px 12px; border:1.5px solid var(--border-strong); border-radius:var(--radius-sm); cursor:pointer;"><input type="radio" name="cr-type" value="temporary" checked /> Temporary</label>
+          <label style="flex:1; display:flex; align-items:center; gap:8px; padding:10px 12px; border:1.5px solid var(--border-strong); border-radius:var(--radius-sm); cursor:pointer;"><input type="radio" name="cr-type" value="permanent" /> Permanent</label>
+        </div>
+      </div>
+      <div class="field">
+        <label>Room code</label>
+        <div style="display:flex; gap:6px;">
+          <input class="input input-mono" id="cr-code" maxlength="10" placeholder="Leave blank to auto-generate" style="flex:1;" />
+          <button type="button" class="btn-icon" id="cr-generate-code" title="Generate a random code" style="flex-shrink:0;">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M23 4v6h-6M1 20v-6h6"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg>
+          </button>
+          <button type="button" class="btn-icon" id="cr-preview-qr" title="Preview QR code" style="flex-shrink:0;">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><path d="M14 14h3v3h-3zM17 17h3v3h-3zM14 20h3M20 14h1"/></svg>
+          </button>
+        </div>
+        <span class="text-muted" style="font-size:11.5px;">4-10 characters: letters and numbers only.</span>
+      </div>
+      <div class="field" id="cr-expiry-field" style="display:none;">
+        <label>Auto-delete this temporary room</label>
+        <label style="display:flex; align-items:center; gap:8px; font-size:13px; font-weight:400; cursor:pointer; margin-bottom:6px;">
+          <input type="checkbox" id="cr-expire-time" /> After a set amount of time
+        </label>
+        <div id="cr-expiry-inputs" style="display:none; gap:8px; margin-bottom:10px;">
+          <input class="input" type="number" min="0" max="23" id="cr-expire-h" placeholder="Hours" style="text-align:center;" />
+          <input class="input" type="number" min="0" max="59" id="cr-expire-m" placeholder="Min" style="text-align:center;" />
+          <input class="input" type="number" min="0" max="59" id="cr-expire-s" placeholder="Sec" style="text-align:center;" />
+        </div>
+        <label style="display:flex; align-items:center; gap:8px; font-size:13px; font-weight:400; cursor:pointer;">
+          <input type="checkbox" id="cr-expire-logout" /> When I (the creator) log out
+        </label>
+      </div>
+      <div class="field"><label>Room password (optional)</label><input class="input" id="cr-password" type="password" placeholder="Leave blank for no password" /></div>
+      <button class="btn btn-primary" type="submit" style="margin-top:4px;">Create room</button>
+    </form>
+  </div>
+</template>
+
+<template id="tpl-join-room">
+  <div class="modal glass">
+    <h3>Join a room</h3>
+    <p class="modal-sub">Enter a room code to join instantly.</p>
+    <form id="join-room-form" style="display:flex; flex-direction:column; gap:14px;">
+      <div class="field"><label>Room code</label><input class="input input-mono" id="jr-code" maxlength="10" required placeholder="ABC123" /></div>
+      <div class="field"><label>Password (if required)</label><input class="input" id="jr-password" type="password" placeholder="Leave blank if none" /></div>
+      <button class="btn btn-primary" type="submit" style="margin-top:4px;">Join room</button>
+    </form>
+  </div>
+</template>
+
+<template id="tpl-room-created">
+  <div class="modal glass" style="text-align:center;">
+    <div class="echo-rings" style="margin-bottom:18px;"><div class="brand-mark" style="width:56px;height:56px;border-radius:16px;background:var(--accent-grad);display:flex;align-items:center;justify-content:center;color:#06141B;font-size:22px;font-weight:700;">✓</div></div>
+    <h3 style="margin-bottom:6px;">Room created!</h3>
+    <p class="modal-sub">Share this code so others can join</p>
+    <div class="mono" id="rc-code" style="font-size:28px; font-weight:700; letter-spacing:0.1em; padding:16px; background:var(--surface-2); border-radius:var(--radius-md); margin-bottom:16px;">------</div>
+    <button class="btn btn-secondary" id="rc-qr" style="width:100%; margin-bottom:8px;">Show QR code</button>
+    <button class="btn btn-secondary" id="rc-copy" style="width:100%; margin-bottom:8px;">Copy invite link</button>
+    <button class="btn btn-primary" id="rc-enter" style="width:100%;">Enter room</button>
+  </div>
+</template>
+
+<template id="tpl-room-settings">
+  <div class="modal glass">
+    <h3>Room settings</h3>
+    <p class="modal-sub" id="rs-code-line"></p>
+    <button class="btn btn-secondary hidden" id="rs-qr" type="button" style="margin-bottom:14px;">Show QR code</button>
+    <div style="display:flex; flex-direction:column; gap:14px;">
+      <div class="field"><label>Room name</label><input class="input" id="rs-name" maxlength="60" /></div>
+      <div class="field"><label>Description</label><input class="input" id="rs-desc" maxlength="200" /></div>
+      <div class="field"><label>Room password</label><input class="input" id="rs-password" type="password" placeholder="Leave blank for no password" /></div>
+      <label style="display:flex; align-items:center; gap:8px; font-size:13.5px; cursor:pointer;"><input type="checkbox" id="rs-require-approval" /> Require approval to join (waiting room)</label>
+      <button class="btn btn-secondary hidden" id="rs-view-pending" type="button" style="width:100%;">View pending requests</button>
+      <label style="display:flex; align-items:center; gap:8px; font-size:13.5px; cursor:pointer;"><input type="checkbox" id="rs-mute" /> Mute notifications from this room</label>
+      <button class="btn btn-secondary" id="rs-save">Save changes</button>
+      <hr style="border:none; border-top:1px solid var(--border); margin:6px 0;" />
+      <button class="btn btn-ghost" id="rs-leave" style="color:var(--danger);">Leave room</button>
+      <button class="btn btn-danger hidden" id="rs-delete">Delete room permanently</button>
+    </div>
+  </div>
+</template>
+
+<template id="tpl-profile-settings">
+  <div class="modal glass">
+    <h3>Profile & settings</h3>
+    <div style="display:flex; flex-direction:column; gap:16px; margin-top:6px;">
+      <div style="display:flex; align-items:center; gap:14px;">
+        <div class="avatar-wrap"><img class="avatar" id="ps-avatar" style="width:56px;height:56px;" alt="" /></div>
+        <div>
+          <button class="btn btn-secondary" id="ps-upload-avatar" type="button" style="padding:8px 14px; font-size:13px;">Change photo</button>
+          <input type="file" id="ps-avatar-input" accept="image/*" class="hidden" />
+        </div>
+      </div>
+      <div class="field"><label>Bio</label><textarea class="input" id="ps-bio" rows="2" maxlength="300"></textarea></div>
+      <div class="field">
+        <label>Status</label>
+        <select class="input" id="ps-status">
+          <option value="online">Online</option>
+          <option value="away">Away</option>
+          <option value="dnd">Do Not Disturb</option>
+          <option value="invisible">Invisible</option>
+        </select>
+      </div>
+      <div class="field">
+        <label>Theme</label>
+        <select class="input" id="ps-theme">
+          <option value="dark">Dark</option>
+          <option value="light">Light</option>
+        </select>
+      </div>
+      <button class="btn btn-secondary" id="ps-save">Save profile</button>
+      <hr style="border:none; border-top:1px solid var(--border); margin:2px 0;" />
+      <button class="btn btn-ghost" id="ps-starred" type="button">⭐ Starred messages</button>
+      <button class="btn btn-ghost" id="ps-call-history" type="button">📞 Call history</button>
+      <button class="btn btn-ghost" id="ps-blocked" type="button">🚫 Blocked users</button>
+      <hr style="border:none; border-top:1px solid var(--border); margin:2px 0;" />
+      <button class="btn btn-ghost" id="ps-change-password" type="button">Change password</button>
+      <button class="btn btn-ghost" id="ps-export" type="button">Export my data</button>
+      <button class="btn btn-ghost" id="ps-logout" type="button">Log out</button>
+      <button class="btn btn-danger" id="ps-delete-account" type="button">Delete account</button>
+    </div>
+  </div>
+</template>
+
+<template id="tpl-change-password">
+  <div class="modal glass">
+    <h3>Change password</h3>
+    <form id="cp-form" style="display:flex; flex-direction:column; gap:14px; margin-top:6px;">
+      <div class="field"><label>Current password</label><input class="input" type="password" id="cp-current" required /></div>
+      <div class="field"><label>New password</label><input class="input" type="password" id="cp-new" minlength="8" required /></div>
+      <button class="btn btn-primary" type="submit">Update password</button>
+    </form>
+  </div>
+</template>
+
+<template id="tpl-confirm">
+  <div class="modal glass">
+    <h3 id="confirm-title">Are you sure?</h3>
+    <p class="modal-sub" id="confirm-body"></p>
+    <div style="display:flex; gap:10px;">
+      <button class="btn btn-secondary" id="confirm-cancel" style="flex:1;">Cancel</button>
+      <button class="btn btn-danger" id="confirm-ok" style="flex:1;">Confirm</button>
+    </div>
+  </div>
+</template>
+
+<template id="tpl-camera">
+  <div class="modal glass camera-modal" style="max-width:520px;">
+    <h3>Camera</h3>
+    <p class="modal-sub" id="cam-mode-hint">Take a photo and preview it before sending.</p>
+    <video id="cam-video" autoplay playsinline muted></video>
+    <canvas id="cam-canvas" class="hidden"></canvas>
+    <img id="cam-preview" class="captured hidden" alt="Captured preview" />
+    <video id="cam-video-preview" class="captured hidden" controls></video>
+    <div class="camera-actions" style="margin-bottom:8px;">
+      <button class="btn btn-ghost" id="cam-mode-photo" type="button" style="flex:0;">📷 Photo</button>
+      <button class="btn btn-ghost" id="cam-mode-video" type="button" style="flex:0;">🎥 Video</button>
+      <button class="btn-icon" id="cam-flash" type="button" title="Toggle flash"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M13 2 3 14h7l-1 8 10-12h-7l1-8Z"/></svg></button>
+    </div>
+    <div class="camera-actions">
+      <button class="btn btn-secondary" id="cam-switch" type="button">Switch camera</button>
+      <button class="btn btn-primary" id="cam-shoot" type="button">Capture</button>
+    </div>
+    <div class="camera-actions hidden" id="cam-confirm-actions">
+      <button class="btn btn-secondary" id="cam-retake" type="button">Retake</button>
+      <button class="btn btn-primary" id="cam-send" type="button">Send photo</button>
+    </div>
+  </div>
+</template>
+
+<template id="tpl-incoming-call">
+  <div class="incoming-call-v2" role="dialog" aria-modal="true" aria-label="Incoming call">
+    <div class="ic-blur-layer" aria-hidden="true"></div>
+    <div class="ic-top">
+      <div class="ic-eyebrow" id="ic-type">Incoming call…</div>
+    </div>
+    <div style="display:flex; flex-direction:column; align-items:center;">
+      <div class="ic-avatar-wrap">
+        <div class="avatar-fallback" id="ic-avatar">?</div>
+      </div>
+      <div class="ic-name-v2" id="ic-name">Someone</div>
+      <div class="ic-sub-v2" id="ic-sub">EchoLink call</div>
+      <div class="ic-quick-actions">
+        <button type="button" id="ic-reply" aria-label="Reply with a message"><span class="circle">💬</span>Reply</button>
+        <button type="button" id="ic-remind" aria-label="Remind me later"><span class="circle">⏰</span>Remind me</button>
+        <button type="button" id="ic-block" aria-label="Block this caller"><span class="circle">🚫</span>Block</button>
+      </div>
+    </div>
+    <div>
+      <form class="ic-reply-box hidden" id="ic-reply-box">
+        <input type="text" id="ic-reply-input" placeholder="Send a quick reply…" maxlength="500" autocomplete="off" />
+        <button type="submit" aria-label="Send reply">Send</button>
+      </form>
+      <div class="ic-swipe-row">
+        <button type="button" class="ic-swipe-btn decline" id="ic-decline" aria-label="Decline call">
+          <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6A19.79 19.79 0 0 1 2.12 4.18 2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92Z" transform="rotate(135 12 12)"/></svg>
+          <span class="hint">Decline</span>
+        </button>
+        <button type="button" class="ic-swipe-btn accept pulse" id="ic-accept" aria-label="Accept call">
+          <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6A19.79 19.79 0 0 1 2.12 4.18 2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92Z"/></svg>
+          <span class="hint">Accept</span>
+        </button>
+      </div>
+    </div>
+  </div>
+</template>
+
+<template id="tpl-group-call-incoming">
+  <div class="incoming-call-v2" role="dialog" aria-modal="true" aria-label="Incoming group call">
+    <div class="ic-blur-layer" aria-hidden="true"></div>
+    <div class="ic-top">
+      <div class="ic-eyebrow" id="gci-type">Incoming group call…</div>
+    </div>
+    <div style="display:flex; flex-direction:column; align-items:center;">
+      <div class="ic-avatar-wrap">
+        <div class="avatar-fallback" id="gci-avatar">?</div>
+      </div>
+      <div class="ic-name-v2" id="gci-name">Someone</div>
+      <div class="ic-sub-v2">is starting a group call</div>
+    </div>
+    <div>
+      <div class="ic-swipe-row">
+        <button type="button" class="ic-swipe-btn decline" id="gci-decline" aria-label="Decline call">
+          <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6A19.79 19.79 0 0 1 2.12 4.18 2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92Z" transform="rotate(135 12 12)"/></svg>
+          <span class="hint">Decline</span>
+        </button>
+        <button type="button" class="ic-swipe-btn accept pulse" id="gci-accept" aria-label="Join call">
+          <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6A19.79 19.79 0 0 1 2.12 4.18 2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92Z"/></svg>
+          <span class="hint">Join</span>
+        </button>
+      </div>
+    </div>
+  </div>
+</template>
+
+<template id="tpl-blocked">
+  <div class="modal glass" style="max-width:420px;">
+    <h3>Blocked users</h3>
+    <p class="modal-sub">Blocked users' messages are hidden from your view.</p>
+    <div id="blocked-list" style="display:flex; flex-direction:column; gap:6px; max-height:360px; overflow-y:auto;"></div>
+  </div>
+</template>
+
+<template id="tpl-forward">
+  <div class="modal glass">
+    <h3>Forward message</h3>
+    <p class="modal-sub">Choose a room to forward this message to.</p>
+    <div id="forward-room-list" style="display:flex; flex-direction:column; gap:6px; max-height:320px; overflow-y:auto;"></div>
+  </div>
+</template>
+
+<template id="tpl-report">
+  <div class="modal glass">
+    <h3 id="report-title">Report</h3>
+    <p class="modal-sub">Tell us what's wrong. Reports are reviewed by room admins.</p>
+    <form id="report-form" style="display:flex; flex-direction:column; gap:14px;">
+      <textarea class="input" id="report-reason" rows="3" maxlength="500" required placeholder="Describe the issue…"></textarea>
+      <button class="btn btn-danger" type="submit">Submit report</button>
+    </form>
+  </div>
+</template>
+
+<template id="tpl-starred">
+  <div class="modal glass" style="max-width:480px;">
+    <h3>Starred messages</h3>
+    <p class="modal-sub">Messages you've starred across all rooms.</p>
+    <div id="starred-list" style="display:flex; flex-direction:column; gap:8px; max-height:420px; overflow-y:auto;"></div>
+  </div>
+</template>
+
+<template id="tpl-call-history">
+  <div class="modal glass" style="max-width:480px;">
+    <h3>Call history</h3>
+    <div id="call-history-list" style="display:flex; flex-direction:column; gap:6px; max-height:420px; overflow-y:auto; margin-top:6px;"></div>
+  </div>
+</template>
+
+<template id="tpl-qr">
+  <div class="modal glass" style="text-align:center; max-width:340px;">
+    <h3 style="margin-bottom:14px;">Scan to join</h3>
+    <div id="qr-canvas-slot" style="display:flex; justify-content:center; margin-bottom:14px;"></div>
+    <div class="mono" id="qr-code-text" style="font-size:20px; font-weight:700; letter-spacing:0.1em; margin-bottom:6px;"></div>
+    <p class="modal-sub" style="margin-bottom:0;">Anyone who scans this can join the room.</p>
+  </div>
+</template>
+
+<template id="tpl-group-call-picker">
+  <div class="modal glass">
+    <h3>Choose members to call</h3>
+    <p class="modal-sub">Only currently-online members can be invited.</p>
+    <div id="gcp-member-list" style="display:flex; flex-direction:column; gap:4px; max-height:280px; overflow-y:auto; margin-bottom:16px;"></div>
+    <button class="btn btn-primary" id="gcp-start" style="width:100%;">Start call</button>
+  </div>
+</template>
+
+<template id="tpl-announcement">
+  <div class="modal glass">
+    <h3>📣 Post an announcement</h3>
+    <p class="modal-sub">Visible to everyone in the room, and automatically pinned.</p>
+    <form id="announcement-form" style="display:flex; flex-direction:column; gap:14px;">
+      <textarea class="input" id="announcement-content" rows="3" maxlength="4000" required placeholder="What's the announcement?"></textarea>
+      <button class="btn btn-primary" type="submit">Post announcement</button>
+    </form>
+  </div>
+</template>
+
+<template id="tpl-create-poll">
+  <div class="modal glass">
+    <h3>Create a poll</h3>
+    <form id="poll-form" style="display:flex; flex-direction:column; gap:12px;">
+      <div class="field"><label>Question</label><input class="input" id="poll-question" maxlength="200" required placeholder="What should we decide?" /></div>
+      <div class="field" id="poll-options-field">
+        <label>Options</label>
+        <div id="poll-options-list" style="display:flex; flex-direction:column; gap:8px;">
+          <input class="input" data-poll-opt maxlength="80" placeholder="Option 1" required />
+          <input class="input" data-poll-opt maxlength="80" placeholder="Option 2" required />
+        </div>
+        <button type="button" class="btn btn-ghost" id="poll-add-option" style="margin-top:8px; padding:6px 10px; font-size:12.5px;">+ Add option</button>
+      </div>
+      <label style="display:flex; align-items:center; gap:8px; font-size:13px; cursor:pointer;"><input type="checkbox" id="poll-allow-multiple" /> Allow selecting multiple options</label>
+      <button class="btn btn-primary" type="submit">Create poll</button>
+    </form>
+  </div>
+</template>
+
+<template id="tpl-schedule-message">
+  <div class="modal glass">
+    <h3>Schedule a message</h3>
+    <p class="modal-sub">It will be sent automatically at the chosen time.</p>
+    <form id="schedule-form" style="display:flex; flex-direction:column; gap:14px;">
+      <div class="field"><label>Message</label><textarea class="input" id="schedule-content" rows="3" maxlength="4000" required></textarea></div>
+      <div class="field"><label>Send at</label><input class="input" type="datetime-local" id="schedule-when" required /></div>
+      <button class="btn btn-primary" type="submit">Schedule</button>
+      <div id="schedule-existing-list" style="display:flex; flex-direction:column; gap:6px;"></div>
+    </form>
+  </div>
+</template>
+
+<template id="tpl-attach-preview">
+  <div class="modal glass" style="max-width:420px;">
+    <h3>Send attachment?</h3>
+    <div id="attach-preview-slot" style="margin:14px 0;"></div>
+    <div style="display:flex; gap:10px;">
+      <button class="btn btn-secondary" id="attach-preview-cancel" style="flex:1;">Cancel</button>
+      <button class="btn btn-primary" id="attach-preview-send" style="flex:1;">Send</button>
+    </div>
+  </div>
+</template>
+
+<template id="tpl-pending-requests">
+  <div class="modal glass" style="max-width:420px;">
+    <h3>Pending join requests</h3>
+    <p class="modal-sub">This room requires approval to join.</p>
+    <div id="pending-requests-list" style="display:flex; flex-direction:column; gap:8px; max-height:320px; overflow-y:auto;"></div>
+  </div>
+</template>
+
+<template id="tpl-location-share">
+  <div class="modal glass">
+    <h3>Share location</h3>
+    <p class="modal-sub" id="loc-status">Getting your current location…</p>
+    <div class="field">
+      <label>Live sharing duration</label>
+      <select class="input" id="loc-duration">
+        <option value="0">Share once (static)</option>
+        <option value="15">Live for 15 minutes</option>
+        <option value="30">Live for 30 minutes</option>
+        <option value="60">Live for 1 hour</option>
+      </select>
+    </div>
+    <button class="btn btn-primary" id="loc-send" style="width:100%; margin-top:10px;" disabled>Share location</button>
+  </div>
+</template>
+
+<template id="tpl-thread-panel">
+  <div class="thread-panel glass">
+    <div class="thread-panel-header">
+      <h3 style="font-size:15px;">Thread</h3>
+      <button class="btn-icon" id="thread-close" style="width:30px;height:30px;">&times;</button>
+    </div>
+    <div class="thread-panel-body" id="thread-panel-body"></div>
+    <div class="thread-panel-composer">
+      <input class="input" id="thread-input" placeholder="Reply in thread…" style="flex:1;" />
+      <button class="btn-icon" id="thread-send" style="background:var(--accent-grad); color:#06141B;"><svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor"><path d="m3 3 18 9-18 9v-7l12-2-12-2V3Z"/></svg></button>
+    </div>
+  </div>
+</template>
+
+<script src="/js/theme.js"></script>
+<script src="/js/toast.js"></script>
+<script src="/js/api.js"></script>
+<script src="/js/modal.js"></script>
+<script src="/js/socket-client.js"></script>
+<script src="/js/recorder.js"></script>
+<script src="/js/call-fx.js"></script>
+<script src="/js/call.js"></script>
+<script src="/js/group-call.js"></script>
+<script src="/js/rooms-ui.js"></script>
+<script src="/js/chat-ui.js"></script>
+<script src="/js/thread.js"></script>
+<script src="/js/composer-extras.js"></script>
+<script src="/js/app.js"></script>
+</body>
+</html>

@@ -1,0 +1,46 @@
+services:
+  - type: web
+    name: echolink-messenger
+    runtime: docker
+    dockerfilePath: ./Dockerfile
+    plan: free
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: PORT
+        value: 3000
+      - key: JWT_SECRET
+        generateValue: true
+      - key: ACCESS_TOKEN_EXPIRES_IN
+        value: 15m
+      - key: REFRESH_TOKEN_EXPIRES_DAYS
+        value: 30
+      - key: COOKIE_NAME
+        value: echolink_token
+      - key: REFRESH_COOKIE_NAME
+        value: echolink_refresh
+      - key: DB_PATH
+        value: /usr/src/app/server/data/echolink.db
+      - key: UPLOAD_DIR
+        value: /usr/src/app/server/uploads
+      - key: STUN_SERVERS
+        value: stun:stun.l.google.com:19302,stun:stun1.l.google.com:19302
+      # TURN is required for reliable calls across real-world networks —
+      # STUN alone cannot traverse many restrictive NATs/firewalls (mobile
+      # carrier NAT, corporate networks, symmetric NAT). Left blank here
+      # (sync: false) since these are real credentials from a TURN
+      # provider (e.g. Twilio, Cloudflare Calls, or a self-hosted coturn
+      # instance) — set them in the Render dashboard, never commit them.
+      # The app falls back to STUN-only (not a crash) if left empty.
+      - key: TURN_SERVER
+        sync: false
+      - key: TURN_USERNAME
+        sync: false
+      - key: TURN_CREDENTIAL
+        sync: false
+      - key: CLIENT_ORIGIN
+        sync: false
+    disk:
+      name: echolink-data
+      mountPath: /usr/src/app/server/data
+      sizeGB: 1

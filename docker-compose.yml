@@ -1,0 +1,31 @@
+version: "3.9"
+
+services:
+  echolink:
+    build: .
+    image: echolink-messenger:latest
+    container_name: echolink-messenger
+    restart: unless-stopped
+    ports:
+      - "3000:3000"
+    environment:
+      NODE_ENV: production
+      PORT: 3000
+      CLIENT_ORIGIN: ${CLIENT_ORIGIN:-http://localhost:3000}
+      JWT_SECRET: ${JWT_SECRET:?Set JWT_SECRET in your .env file}
+      JWT_EXPIRES_IN: 7d
+      COOKIE_NAME: echolink_token
+      DB_PATH: /usr/src/app/server/data/echolink.db
+      UPLOAD_DIR: /usr/src/app/server/uploads
+      MAX_UPLOAD_MB: 25
+      STUN_SERVERS: stun:stun.l.google.com:19302,stun:stun1.l.google.com:19302
+      TURN_SERVER: ${TURN_SERVER:-}
+      TURN_USERNAME: ${TURN_USERNAME:-}
+      TURN_CREDENTIAL: ${TURN_CREDENTIAL:-}
+    volumes:
+      - echolink_data:/usr/src/app/server/data
+      - echolink_uploads:/usr/src/app/server/uploads
+
+volumes:
+  echolink_data:
+  echolink_uploads:

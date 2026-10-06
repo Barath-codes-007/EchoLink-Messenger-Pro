@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Sign in — EchoLink Messenger</title>
+<script>(function(){ var t = localStorage.getItem("echolink:theme") || "dark"; document.documentElement.setAttribute("data-theme", t); })();</script>
+<link rel="stylesheet" href="/css/tokens.css" />
+<style>
+  body { min-height: 100vh; display: flex; align-items: center; justify-content: center; padding: 24px; position: relative; overflow: hidden; }
+  body::before, body::after { content: ""; position: fixed; border-radius: 50%; filter: blur(100px); opacity: 0.3; z-index: 0; }
+  body::before { width: 420px; height: 420px; background: var(--accent); top: -140px; left: -100px; }
+  body::after { width: 380px; height: 380px; background: var(--accent-2); bottom: -140px; right: -100px; }
+  .auth-card { width: 100%; max-width: 400px; padding: 36px; border-radius: var(--radius-lg); position: relative; z-index: 1; box-shadow: var(--shadow-lg); }
+  .auth-brand { display: flex; align-items: center; gap: 10px; font-family: var(--font-display); font-weight: 700; font-size: 18px; justify-content: center; margin-bottom: 28px; }
+  .auth-tabs { display: flex; background: var(--surface-2); border-radius: var(--radius-full); padding: 4px; margin-bottom: 26px; }
+  .auth-tab { flex: 1; text-align: center; padding: 9px; border-radius: var(--radius-full); font-size: 13.5px; font-weight: 600; cursor: pointer; color: var(--text-muted); border: none; background: none; transition: all 0.2s var(--ease); }
+  .auth-tab.active { background: var(--bg-elevated); color: var(--text); box-shadow: var(--shadow-sm); }
+  form.auth-form { display: none; flex-direction: column; gap: 16px; }
+  form.auth-form.active { display: flex; }
+  .auth-submit { margin-top: 6px; }
+  .auth-foot { text-align: center; font-size: 13px; color: var(--text-muted); margin-top: 18px; }
+  .auth-foot a { color: var(--accent); font-weight: 600; }
+  .remember-row { display: flex; align-items: center; justify-content: space-between; font-size: 13px; color: var(--text-muted); }
+  .remember-row label { display: flex; align-items: center; gap: 7px; cursor: pointer; }
+  .back-home {
+    position: fixed; top: 24px; left: 24px; z-index: 2;
+    display: inline-flex; align-items: center; gap: 8px;
+    padding: 10px 18px 10px 14px;
+    border-radius: var(--radius-full);
+    font-size: 13.5px; font-weight: 600; color: var(--text-muted);
+    border: 1px solid var(--border-strong);
+    transition: color 0.2s var(--ease), border-color 0.2s var(--ease), transform 0.18s var(--ease-spring), background 0.2s var(--ease);
+  }
+  .back-home:hover { color: var(--text); border-color: var(--accent); background: var(--accent-soft); transform: translateX(-2px); }
+  .back-home svg { flex-shrink: 0; transition: transform 0.2s var(--ease); }
+  .back-home:hover svg { transform: translateX(-2px); }
+</style>
+</head>
+<body>
+
+<a href="/" class="back-home glass" aria-label="Back to home">
+  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m12 19-7-7 7-7M5 12h14"/></svg>
+  Back to home
+</a>
+
+<div class="auth-card glass">
+  <div class="auth-brand"><span class="brand-mark" style="width:34px;height:34px;border-radius:10px;background:var(--accent-grad);display:flex;align-items:center;justify-content:center;color:#06141B;">E</span>EchoLink</div>
+
+  <div class="auth-tabs">
+    <button class="auth-tab" data-tab="login">Log In</button>
+    <button class="auth-tab" data-tab="signup">Sign Up</button>
+  </div>
+
+  <form class="auth-form" id="form-login" autocomplete="on">
+    <div class="field">
+      <label for="login-id">Username or email</label>
+      <input class="input" id="login-id" name="identifier" type="text" required autocomplete="username" />
+    </div>
+    <div class="field">
+      <label for="login-pw">Password</label>
+      <input class="input" id="login-pw" name="password" type="password" required autocomplete="current-password" />
+    </div>
+    <div class="remember-row">
+      <label><input type="checkbox" id="remember-me" checked /> Remember me</label>
+      <a href="#" id="forgot-link" style="color:var(--accent); font-weight:600;">Forgot password?</a>
+    </div>
+    <button type="submit" class="btn btn-primary auth-submit">Log In</button>
+  </form>
+
+  <form class="auth-form" id="form-signup" autocomplete="on">
+    <div class="field">
+      <label for="su-username">Username</label>
+      <input class="input" id="su-username" name="username" type="text" minlength="3" maxlength="20" pattern="[a-zA-Z0-9_.]+" required autocomplete="username" placeholder="letters, numbers, _ or ." />
+    </div>
+    <div class="field">
+      <label for="su-email">Email</label>
+      <input class="input" id="su-email" name="email" type="email" required autocomplete="email" />
+    </div>
+    <div class="field">
+      <label for="su-password">Password</label>
+      <input class="input" id="su-password" name="password" type="password" minlength="8" required autocomplete="new-password" placeholder="At least 8 characters, 1 letter, 1 number" />
+    </div>
+    <button type="submit" class="btn btn-primary auth-submit">Create Account</button>
+  </form>
+
+  <form class="auth-form" id="form-forgot">
+    <p class="text-muted" style="font-size:13.5px; margin-bottom:4px;">This is a demo build — password reset emails aren't wired up yet. In a production deployment this would send a reset link to your email.</p>
+    <div class="field">
+      <label for="forgot-email">Email</label>
+      <input class="input" id="forgot-email" type="email" required />
+    </div>
+    <button type="submit" class="btn btn-secondary auth-submit">Send reset link</button>
+  </form>
+
+  <div class="auth-foot" id="auth-foot">Don't have an account? <a href="#" data-switch="signup">Sign up</a></div>
+</div>
+
+<div id="toast-stack"></div>
+<script src="/js/theme.js"></script>
+<script src="/js/toast.js"></script>
+<script src="/js/api.js"></script>
+<script src="/js/auth.js"></script>
+</body>
+</html>
