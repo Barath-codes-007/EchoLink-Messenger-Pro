@@ -213,6 +213,25 @@ Issues and pull requests are welcome. Please:
 2. Keep the existing folder structure and naming conventions
 3. Test your changes locally (`npm run dev`) before submitting
 
+# EchoLink Messenger Pro
+
+<p align="center">
+  <a href="https://echolink-messenger-pro-2.onrender.com">
+    <img src="https://img.shields.io/badge/🚀_LIVE_DEMO-Launch_EchoLink_Messenger_Pro-0A84FF?style=for-the-badge" alt="Launch Live Demo">
+  </a>
+</p>
+
+<p align="center">
+  <strong>A Real-Time Messaging & Video Communication Platform</strong>
+</p>
+
+<p align="center">
+  Experience EchoLink Messenger Pro live in your browser.
+</p>
+
+**🌐 Live Demo:** https://echolink-messenger-pro-2.onrender.com
+
+
 ## 📄 License
 
 MIT — see [LICENSE](LICENSE).
