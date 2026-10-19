@@ -11,8 +11,42 @@
 </script>
 <link rel="stylesheet" href="/css/tokens.css" />
 <link rel="stylesheet" href="/css/landing.css" />
+<style>
+  .demo-banner {
+    position: relative; z-index: 100;
+    display: flex; align-items: center; justify-content: center; gap: 10px;
+    padding: 10px 44px 10px 16px;
+    font-size: 13px; font-weight: 500; text-align: center;
+    background: var(--accent-soft); color: var(--text);
+    border-bottom: 1px solid var(--border-strong);
+  }
+  .demo-banner strong { color: var(--accent); }
+  .demo-banner button {
+    position: absolute; right: 12px; top: 50%; transform: translateY(-50%);
+    width: 26px; height: 26px; border-radius: 50%; border: none;
+    background: transparent; color: var(--text-muted); cursor: pointer;
+    font-size: 16px; line-height: 1;
+  }
+  .demo-banner button:hover { background: var(--surface-2); color: var(--text); }
+  .demo-banner.hidden { display: none; }
+</style>
 </head>
 <body>
+
+<div class="demo-banner" id="demo-banner">
+  <span><strong>Demo deployment</strong> — this instance runs on a free hosting tier with no persistent storage, so messages, accounts, and uploads reset on every redeploy. Don't use it for anything you want to keep.</span>
+  <button type="button" id="demo-banner-dismiss" aria-label="Dismiss">&times;</button>
+</div>
+<script>
+  (function () {
+    var banner = document.getElementById("demo-banner");
+    if (sessionStorage.getItem("echolink:demoBannerDismissed")) banner.classList.add("hidden");
+    document.getElementById("demo-banner-dismiss").addEventListener("click", function () {
+      sessionStorage.setItem("echolink:demoBannerDismissed", "1");
+      banner.classList.add("hidden");
+    });
+  })();
+</script>
 
 <nav class="nav">
   <div class="nav-inner glass">

@@ -362,6 +362,24 @@
 
   document.getElementById("theme-toggle").addEventListener("click", () => EchoTheme.toggle());
 
+  (function initSidebarCollapse() {
+    const appShell = document.getElementById("app-shell");
+    const collapseBtn = document.getElementById("sidebar-collapse-btn");
+    const expandBtn = document.getElementById("sidebar-expand-btn");
+
+    function setCollapsed(collapsed) {
+      appShell.classList.toggle("sidebar-collapsed", collapsed);
+      collapseBtn.setAttribute("aria-expanded", String(!collapsed));
+      localStorage.setItem("echolink:sidebarCollapsed", collapsed ? "1" : "0");
+    }
+
+    if (localStorage.getItem("echolink:sidebarCollapsed") === "1") setCollapsed(true);
+
+    collapseBtn.addEventListener("click", () => setCollapsed(true));
+    expandBtn.addEventListener("click", () => setCollapsed(false));
+    EchoCallFx?.enhanceButtons(document.body, "#sidebar-collapse-btn, #sidebar-expand-btn");
+  })();
+
   document.getElementById("my-avatar-wrap").addEventListener("click", (e) => {
     const rect = e.currentTarget.getBoundingClientRect();
     EchoContextMenu.open(rect.right, rect.top, [

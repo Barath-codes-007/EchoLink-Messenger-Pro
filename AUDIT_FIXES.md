@@ -410,6 +410,64 @@ implemented correctly — listed here so they aren't re-investigated later:
 - Rate limiting already covers auth endpoints tightly and general API
   traffic broadly (from earlier rounds).
 
+35. **Critical: accepting/declining a call did nothing on the callee's own
+    screen (user-reported).** `server/src/sockets/calls.js`'s
+    `call:respond` handler never accepted or called an `ack` callback, but
+    the client calls it via `emitAck` (`await EchoSocket.emitAck("call:respond",
+    ...)`), which returns a Promise that only resolves once the server
+    calls that callback. With no callback ever coming, the Promise hung
+    forever:
+    - **Accept**: `renderCallOverlay()` sits *after* the hung `await`, so
+      it never ran — the callee's incoming-call modal closed (that part
+      happens first) but no call screen ever appeared, even though the
+      *caller's* side worked fine (it reacts to a separate broadcast
+      event, not this hung Promise) and the call was actually connecting
+      in the background with no UI to show for it.
+    - **Decline**: the opposite ordering — `closeIncomingModal()` sits
+      *after* the hung `await`, so the decliner's own modal and ringtone
+      never stopped, even though the server had already processed the
+      decline correctly and the caller correctly saw "declined."
+    Fixed by adding the missing `ack` parameter and calling it on every
+    path. Also hardened `emitAck` itself (`socket-client.js`) with a
+    10-second timeout, so a future handler that similarly forgets to ack
+    fails fast with a toast instead of hanging the UI indefinitely again —
+    and gave `accept()`/`decline()` real error handling instead of
+    silently swallowing failures.
+
+36. **Avatar "box shape" instead of circular (user-reported).**
+    `.avatar-fallback` (the initials-based avatar shown when someone has
+    no profile photo) had **no base styling at all** in any stylesheet
+    `app.html` actually loads. The correctly-styled circular version only
+    existed in `landing.css` — used solely by the marketing landing page,
+    never included in the actual chat app. Every fallback avatar
+    throughout the whole app (not just calls — chat messages, room member
+    lists, group-call tiles, the incoming-call screen) was rendering as a
+    bare, unstyled square div. Fixed at the root: added the real base rule
+    to `app.css` next to the existing (correctly circular) `.avatar` class,
+    so every more specific call-screen override (size, border, shadow)
+    now correctly inherits a circular shape instead of each needing its
+    own fix.
+
+37. **Sidebar collapse to free up chat space (user-requested).** Clicking
+    the EchoLink logo in the sidebar header now collapses the sidebar
+    (animates `width`, not just `transform`, so `chat-main` genuinely
+    reclaims the freed space rather than leaving a blank gap) with a small
+    floating button appearing in the chat area to bring it back. Preference
+    persists across sessions via `localStorage`, same pattern as the
+    existing theme toggle.
+
+38. **Incoming-call screen polish (user-reported: "not professional").**
+    Much of this was likely the hung-Promise bug above making the whole
+    flow *look* broken regardless of styling. Beyond that bug fix, also:
+    replaced the quick-action emoji (💬⏰🚫 — inconsistent rendering across
+    platforms, reads as a placeholder) with clean stroke SVG icons matching
+    the rest of the call UI's visual language; grounded the accept/decline
+    buttons in a frosted-glass tray at the bottom instead of floating loose
+    on the gradient background; added a subtle vignette for depth; added a
+    small bouncing chevron above the accept button as a swipe-up gesture
+    hint (the button remains a plain tap target regardless — the hint is
+    purely additive, not a new requirement to swipe).
+
 ## Confirmed real issues, still not fixed
 
 - **1:1 WebRTC reconnection / `restartIce()`** (item #5) — not audited.

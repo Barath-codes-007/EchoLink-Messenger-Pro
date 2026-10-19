@@ -40,7 +40,17 @@ services:
         sync: false
       - key: CLIENT_ORIGIN
         sync: false
-    disk:
-      name: echolink-data
-      mountPath: /usr/src/app/server/data
-      sizeGB: 1
+    # No `disk:` block here on purpose: Render's Free plan does not support
+    # persistent disks at all (that's a paid-plan-only feature), so this
+    # app's SQLite database and uploaded files are ephemeral on Free —
+    # every redeploy, and any restart Render triggers on its own, wipes
+    # them and starts clean. That's a deliberate, known tradeoff for a
+    # free demo deployment, not a bug.
+    #
+    # If you later upgrade `plan:` away from `free` to actually keep data
+    # across deploys, add this back:
+    #
+    # disk:
+    #   name: echolink-data
+    #   mountPath: /usr/src/app/server/data
+    #   sizeGB: 1

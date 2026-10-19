@@ -53,11 +53,23 @@
     return socket;
   }
 
-  /** Wraps an emit with an ack callback into a Promise. */
-  function emitAck(event, payload) {
+  /** Wraps an emit with an ack callback into a Promise. Times out rather
+   * than hanging forever if the server never calls its ack back (a missing
+   * server-side ack used to leave callers awaiting indefinitely with no
+   * way to recover short of reloading the page). */
+  function emitAck(event, payload, timeoutMs = 10000) {
     return new Promise((resolve, reject) => {
       if (!socket) return reject(new Error("Not connected."));
+      let settled = false;
+      const timer = setTimeout(() => {
+        if (settled) return;
+        settled = true;
+        reject(new Error("The server didn't respond in time. Please try again."));
+      }, timeoutMs);
       socket.emit(event, payload, (res) => {
+        if (settled) return;
+        settled = true;
+        clearTimeout(timer);
         if (res && res.ok === false) reject(new Error(res.error || "Request failed."));
         else resolve(res);
       });

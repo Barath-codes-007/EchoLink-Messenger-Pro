@@ -35,6 +35,7 @@
   .back-home:hover { color: var(--text); border-color: var(--accent); background: var(--accent-soft); transform: translateX(-2px); }
   .back-home svg { flex-shrink: 0; transition: transform 0.2s var(--ease); }
   .back-home:hover svg { transform: translateX(-2px); }
+  .demo-note { font-size: 12px; color: var(--text-muted); text-align: center; margin-bottom: 18px; line-height: 1.5; }
 </style>
 </head>
 <body>
@@ -46,6 +47,8 @@
 
 <div class="auth-card glass">
   <div class="auth-brand"><span class="brand-mark" style="width:34px;height:34px;border-radius:10px;background:var(--accent-grad);display:flex;align-items:center;justify-content:center;color:#06141B;">E</span>EchoLink</div>
+
+  <p class="demo-note">This is a free-tier demo — accounts and messages reset on redeploy.</p>
 
   <div class="auth-tabs">
     <button class="auth-tab" data-tab="login">Log In</button>

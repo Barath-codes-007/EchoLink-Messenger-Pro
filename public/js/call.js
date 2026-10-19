@@ -133,14 +133,24 @@
     }
 
     async function decline() {
-      await EchoSocket.emitAck("call:respond", { callId, accept: false }).catch(() => {});
+      try {
+        await EchoSocket.emitAck("call:respond", { callId, accept: false });
+      } catch (err) {
+        EchoToast.error(err.message || "Couldn't reach the server — closing anyway.");
+      }
       closeIncomingModal();
     }
 
     async function accept() {
       closeIncomingModal();
       current = { callId, roomId, peerId: from.id, peerName: from.username, callType, isCaller: false };
-      await EchoSocket.emitAck("call:respond", { callId, accept: true }).catch(() => {});
+      try {
+        await EchoSocket.emitAck("call:respond", { callId, accept: true });
+      } catch (err) {
+        EchoToast.error(err.message || "Couldn't accept the call.");
+        current = null;
+        return;
+      }
       renderCallOverlay();
       // Wait for the caller's offer — handled in the 'call:offer' listener below.
     }

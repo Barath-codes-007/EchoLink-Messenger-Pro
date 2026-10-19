@@ -141,9 +141,11 @@ function registerCallHandlers(io, socket) {
 
   // Callee's accept/decline decision — no SDP yet. Accepting tells the
   // caller to go ahead and create the WebRTC offer.
-  socket.on("call:respond", ({ callId, accept }) => {
+  socket.on("call:respond", ({ callId, accept }, ack) => {
     const call = activeCalls.get(callId);
-    if (!requireParticipant(call, user.id) || call.calleeId !== user.id) return;
+    if (!requireParticipant(call, user.id) || call.calleeId !== user.id) {
+      return ack?.({ ok: false, error: "This call is no longer available." });
+    }
     clearRingTimer(call);
 
     if (!accept) {
@@ -153,7 +155,7 @@ function registerCallHandlers(io, socket) {
       // Other tabs/devices of the same callee were ringing too — this one
       // already handled its own UI locally, so just tell the rest.
       socket.to(`user:${call.calleeId}`).emit("call:ended", { callId, reason: "declined-elsewhere" });
-      return;
+      return ack?.({ ok: true });
     }
 
     // Bind the call to *this* specific socket — the offer, answer, and every
@@ -167,6 +169,7 @@ function registerCallHandlers(io, socket) {
     // accepted, since it can't tell "answered elsewhere" apart from
     // "actually over". socket.to() excludes the sender for exactly this.
     socket.to(`user:${call.calleeId}`).emit("call:ended", { callId, reason: "answered-elsewhere" });
+    ack?.({ ok: true });
   });
 
   // Caller -> callee: the WebRTC offer, sent only after the callee accepted.
